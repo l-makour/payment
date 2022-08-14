@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -37,8 +38,29 @@ class PaymentServiceTest {
         Mockito.when(paymentRepository.findAll()).thenReturn(payments);
 
         PaymentService paymentService = new PaymentService(paymentRepository);
-        List<Payment> paymentReturned = paymentService.getAllPayments();
+        List<PaymentDto> paymentReturned = paymentService.getAllPayments();
         Assertions.assertEquals(paymentReturned.size(), 2);
         Assertions.assertEquals(paymentReturned.get(0).getAmount(), 100F);
+    }
+
+    @Test
+    public void ifShouldGetPaymentByIdTest() throws PayementNotFoundException {
+        Payment payment1 = Payment.builder()
+                .id(1)
+                .amount(100F)
+                .paymentDate(LocalDateTime.now())
+                .orderId(12)
+                .build();
+        Mockito.when(paymentRepository.findById(1)).thenReturn(Optional.ofNullable(payment1));
+        PaymentService paymentService = new PaymentService(paymentRepository);
+        PaymentDto paymentReturned = paymentService.getPaymentById(1);
+        Assertions.assertNotNull(paymentReturned);
+        Assertions.assertEquals(paymentReturned.getAmount(), 100F);
+
+        Mockito.when(paymentRepository.findById(2)).thenReturn(Optional.empty());
+        PayementNotFoundException payementNotFoundException = Assertions.assertThrows(PayementNotFoundException.class, () -> {
+            paymentService.getPaymentById(2);
+        });
+        Assertions.assertEquals(payementNotFoundException.getMessage(),"payment with id 2 not found");
     }
 }
