@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 
 @SpringBootTest(classes = PaymentApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -25,8 +28,17 @@ class PaymentControllerTestIT {
 
     @Test
     public void getPaymentTest() {
-        CustomResponse<PaymentDto> customResponse = testRestTemplate.getForObject("http://localhost:" + port + "/api/v1/payments/1", CustomResponse.class);
-        Assertions.assertEquals(customResponse.getCustomDto().getAmount(), 100F);
-        Assertions.assertEquals(customResponse.getCustomDto().getOrderId(), 1);
+        ResponseEntity<CustomResponse<PaymentDto>> customResponse = testRestTemplate.exchange("http://localhost:" + port + "/api/v1/payments/1",
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<CustomResponse<PaymentDto>>() {
+                });
+        Assertions.assertEquals(customResponse.getBody().getCustomDto().getAmount(), 100F);
+        Assertions.assertEquals(customResponse.getBody().getResponseStatus(), ResponseStatus.OK);
+        Assertions.assertEquals(customResponse.getBody().customDto.getOrderId(), 1);
+
+        CustomResponse<PaymentDto> customResponseNotFound = testRestTemplate.getForObject("http://localhost:" + port + "/api/v1/payments/10", CustomResponse.class);
+        Assertions.assertEquals(customResponseNotFound.responseStatus, ResponseStatus.KO);
+        Assertions.assertEquals(customResponseNotFound.errorMessage, "payment with id 10 not found");
     }
 }
